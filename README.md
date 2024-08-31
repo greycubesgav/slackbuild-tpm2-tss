@@ -6,9 +6,27 @@ tpm2-tss is source code implementing the Trusted Computing Group's (TCG) TPM2 So
 
 Homepage: https://github.com/tpm2-software/tpm2-tss/
 
-## Build instructions
+## Docker Based Build Instructions
+
+The following instructions show how to build this package using the included Dockerfile.
+
+Docker needs to be installed and running before running the make command.
+
+The final artifact will be copied to a new ./pkgs directory
+
+```bash
+# Clone the git repo
+git clone https://github.com/greycubesgav/slackbuild-tpm2-tss
+cd slackbuild-tpm2-tss
+make docker-artifact-build
+# Slackware package will be created in ./pkgs
+```
+
+## Manual Build Instructions Under Slackware
 
 The following instructs show how to build the package locally under Slackware.
+
+Note: cryptsetup is needed to build
 
 ```bash
 # Clone the git repo
@@ -20,10 +38,10 @@ wget $(sed -n 's/DOWNLOAD="\(.*\)"/\1/p' *.info)
 # Slackware package will be created in /tmp
 ```
 
-## Install instructions
+## Install Instructions
 
 Once the package is built, it can be installed with
 
 ```bash
-upgradepkg --install-new --reinstall /tmp/tpm2-tss-*.tgz
+upgradepkg --install-new --reinstall ./pkgs/tpm2-tss-*.tgz
 ```

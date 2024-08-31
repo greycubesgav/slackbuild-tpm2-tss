@@ -1,104 +1,40 @@
-FROM vbatts/slackware:15.0
+FROM greycubesgav/slackware-docker-base:latest AS builder
 
-USER root
-ENV USER=root
-
-
-RUN echo y | slackpkg update
-
-RUN echo y | slackpkg install lzlib
-
-RUN echo y | slackpkg install \
-      autoconf \
-      autoconf-archive \
-      automake \
-      binutils \
-      kernel-headers \
-      pkg-tools \
-      glibc \
-      automake \
-      autoconf \
-      m4 \
-      gcc \
-      g++ \
-      meson \
-      ninja \
-      ar \
-      flex \
-      pkg-config \
-      cmake \
-      libarchive \
-      lz4 \
-      libxml2 \
-      nghttp2 \
-      brotli \
-      cyrus-sasl \
-      jansson \
-      elfutils \
-      guile \
-      gc \
-      cryptsetup \
-      curl \
-      python3 \
-      zlib \
-      socat \
-      linuxdoc-tools \
-      keyutils \
-      openssl \
-      libxslt \
-      openldap \
-      libnsl \
-      lvm2 \
-      eudev \
-      json-c  \
-      make \
-      libffi \
-      libidn2 \
-      libssh2 \
-      ca-certificates
-
-RUN echo y | slackpkg install \
-      libgcrypt \
-      libgpg-error \
-      dcron \
-      udisks2
-
-RUN echo y | slackpkg install \
-      openssh
-
-# Set the SlackBuild tag
+# Set our prepended build artifact tag and build dir
 ENV TAG='_GG'
-ENV BUILD='GG'
 
-# Cryptsetup build
-WORKDIR /root
-RUN echo y | slackpkg install lvm2 \
- popt \
- pkg-config \
- json-c \
- libssh2 \
- libssh \
- argon2 \
- flex \
- libgpg-error \
- libgcrypt
-
-RUN mkdir cryptsetup
+#--------------------------------------------------------------
+# Cryptsetup Install
+#--------------------------------------------------------------
+# We need a version of cryptsetup to builf tpm2-tss against
+# Here we pull a specific version from the official repository
+ARG CRYPTSETUP_VERSION=cryptsetup-2.7.1.tar.xz
 WORKDIR /root/cryptsetup
-RUN wget --no-check-certificate 'https://mirrors.slackware.com/slackware/slackware64-current/source/a/cryptsetup/cryptsetup-2.7.1.tar.xz'
-RUN wget --no-check-certificate 'https://mirrors.slackware.com/slackware/slackware64-current/source/a/cryptsetup/cryptsetup.SlackBuild'
-RUN chmod +x cryptsetup.SlackBuild
-RUN ./cryptsetup.SlackBuild
-RUN installpkg /tmp/cryptsetup-2.7.1-x86_64-GG.txz
+RUN wget --no-check-certificate "https://mirrors.edge.kernel.org/pub/linux/utils/cryptsetup/v2.7/${CRYPTSETUP_VERSION}"
+RUN wget --no-check-certificate 'https://mirrors.slackware.com/slackware/slackware64-current/source/a/cryptsetup/cryptsetup.SlackBuild' \
+ 'https://mirrors.slackware.com/slackware/slackware64-current/source/a/cryptsetup/slack-desc'
+RUN chmod +x cryptsetup.SlackBuild && ./cryptsetup.SlackBuild
+RUN installpkg /tmp/cryptsetup-*.txz
 
-# Make and Install tpm2-tss libraries
-COPY src/tpm2-tss-4.0.1.tar.gz /root/tpm2-tss/
-COPY tpm2-tss.SlackBuild /root/tpm2-tss/
-COPY slack-desc /root/tpm2-tss/
-COPY tpm2-tss.info /root/tpm2-tss/
-WORKDIR /root/tpm2-tss/
-RUN ls -l
-RUN ./tpm2-tss.SlackBuild
-RUN installpkg "/tmp/tpm2-tss-4.0.1-x86_64-$BUILD$TAG.tgz"
+#--------------------------------------------------------------
+# BuilD Slackware Package
+#--------------------------------------------------------------
+# Copy over the build files
+COPY LICENSE *.info *.SlackBuild README slack-desc /root/build/
 
-CMD ["/bin/bash","-l"]
+# Grab the source and check the md5
+WORKDIR /root/build/
+RUN wget --no-check-certificate $(sed -n 's/DOWNLOAD="\(.*\)"/\1/p' *.info)
+RUN export pkgname=$(grep 'DOWNLOAD=' *.info| sed 's|.*/||;s|"||g') \
+&& export pkgmd5sum=$(sed -n 's/MD5SUM="\(.*\)"/\1/p' *.info) \
+&& echo "$pkgmd5sum  $pkgname" > "${pkgname}.md5" \
+&& md5sum -c "${pkgname}.md5"
+
+# Build the package
+RUN ./*.SlackBuild
+
+#ENTRYPOINT [ "bash" ]
+
+# Create a clean image with only the artifact
+FROM scratch AS artifact
+COPY --from=builder /tmp/tpm2*.tgz .
