@@ -8,16 +8,14 @@ ENV TAG='_GG'
 #--------------------------------------------------------------
 # We need a version of cryptsetup to builf tpm2-tss against
 # Here we pull a specific version from the official repository
-ARG CRYPTSETUP_VERSION=cryptsetup-2.7.1.tar.xz
-WORKDIR /root/cryptsetup
-RUN wget --no-check-certificate "https://mirrors.edge.kernel.org/pub/linux/utils/cryptsetup/v2.7/${CRYPTSETUP_VERSION}"
-RUN wget --no-check-certificate 'https://mirrors.slackware.com/slackware/slackware64-current/source/a/cryptsetup/cryptsetup.SlackBuild' \
- 'https://mirrors.slackware.com/slackware/slackware64-current/source/a/cryptsetup/slack-desc'
-RUN chmod +x cryptsetup.SlackBuild && ./cryptsetup.SlackBuild
-RUN installpkg /tmp/cryptsetup-*.txz
+# which matches the version shipped with Unraid version 6.12.11
+ARG CRYPTSETUP_VERSION=cryptsetup-2.6.1-x86_64-1_GG.txz
+WORKDIR /root/cryptsetup/
+RUN wget --no-check-certificate "https://github.com/greycubesgav/slackbuild-cryptsetup/releases/download/main/${CRYPTSETUP_VERSION}"
+RUN installpkg ./cryptsetup-*.txz
 
 #--------------------------------------------------------------
-# BuilD Slackware Package
+# Build Slackware Package
 #--------------------------------------------------------------
 # Copy over the build files
 COPY LICENSE *.info *.SlackBuild README slack-desc /root/build/

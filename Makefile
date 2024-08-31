@@ -1,7 +1,10 @@
 DOCKER_USER=greycubesgav
-DOCKER_IMAGE_NAME=slackware-tpm2-tss
-DOCKER_IMAGE_VERSION=latest
+DOCKER_IMAGE_NAME := $(basename `git rev-parse --show-toplevel`)
+DOCKER_IMAGE_VERSION := $(shell sed -n 's/VERSION="\(.*\)"/\1/p' *.info)
 DOCKER_PLATFORM=linux/amd64
+
+docker-image-clean:
+	docker image rm $(DOCKER_USER)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_VERSION)
 
 docker-image-build:
 	docker build --platform $(DOCKER_PLATFORM) --file Dockerfile --tag $(DOCKER_USER)/$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_VERSION) .
