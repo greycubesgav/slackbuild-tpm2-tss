@@ -1,5 +1,5 @@
 DOCKER_USER=greycubesgav
-DOCKER_IMAGE_NAME := $(basename `git rev-parse --show-toplevel`)
+DOCKER_IMAGE_NAME := $(shell basename `git rev-parse --show-toplevel`)
 DOCKER_IMAGE_VERSION := $(shell sed -n 's/VERSION="\(.*\)"/\1/p' *.info)
 DOCKER_PLATFORM=linux/amd64
 
